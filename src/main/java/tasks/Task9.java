@@ -45,7 +45,8 @@ public class Task9 {
   public String convertPersonToString(Person person) {
     // Во-первых, лишний раз склеивался .secondName()
     // Во-вторых, через стримы наверное это оптимальнее и более лаконично
-    return Stream.of(person.secondName(), person.firstName(), person.middleName())
+    return Stream
+        .of(person.secondName(), person.firstName(), person.middleName())
         .filter(name -> name != null && !name.isEmpty())
         .collect(Collectors.joining(" "));
   }
