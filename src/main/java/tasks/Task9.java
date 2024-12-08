@@ -20,74 +20,73 @@ P.S. Код в целом рабочий (не везде), комментари
 P.P.S Здесь ваши правки необходимо прокомментировать (можно в коде, можно в PR на Github)
  */
 public class Task9 {
-
-  private long count;
+  // Кажется не нужно свойство в классе объявлять, если оно используется в одном методе только
 
   // Костыль, эластик всегда выдает в топе "фальшивую персону".
   // Конвертируем начиная со второй
   public List<String> getNames(List<Person> persons) {
-    if (persons.size() == 0) {
+    // В некоторых типах списков .isEmpty() работает быстрее
+    if (persons.isEmpty()) {
       return Collections.emptyList();
     }
-    persons.remove(0);
-    return persons.stream().map(Person::firstName).collect(Collectors.toList());
+    // Мутировать входящие параметры обычно не рекомендуют во всех языках, кажется .skip() как раз для таких кейсов
+    // .toList() создает неизменяемый список, кажется более логичным так вернуть
+    return persons.stream().skip(1).map(Person::firstName).toList();
   }
 
   // Зачем-то нужны различные имена этих же персон (без учета фальшивой разумеется)
   public Set<String> getDifferentNames(List<Person> persons) {
-    return getNames(persons).stream().distinct().collect(Collectors.toSet());
+    // .distinct() не нужен, т.к. при создании сета все значения и так станут уникальными
+    // Стрим тут не нужен, можно обойтись конструктором
+    return new HashSet<>(getNames(persons));
   }
 
   // Тут фронтовая логика, делаем за них работу - склеиваем ФИО
   public String convertPersonToString(Person person) {
-    String result = "";
-    if (person.secondName() != null) {
-      result += person.secondName();
-    }
-
-    if (person.firstName() != null) {
-      result += " " + person.firstName();
-    }
-
-    if (person.secondName() != null) {
-      result += " " + person.secondName();
-    }
-    return result;
+    // Во-первых, лишний раз склеивался .secondName()
+    // Во-вторых, через стримы наверное это оптимальнее и более лаконично
+    return Stream.of(person.secondName(), person.firstName(), person.middleName())
+        .filter(name -> name != null && !name.isEmpty())
+        .collect(Collectors.joining(" "));
   }
 
   // словарь id персоны -> ее имя
   public Map<Integer, String> getPersonNames(Collection<Person> persons) {
-    Map<Integer, String> map = new HashMap<>(1);
+    // Изначальный размер должен быть равен размеру коллекции
+    Map<Integer, String> map = new HashMap<>(persons.size());
     for (Person person : persons) {
-      if (!map.containsKey(person.id())) {
-        map.put(person.id(), convertPersonToString(person));
-      }
+      // Кажется нет особо смысла проверять наличие ключа
+      map.put(person.id(), convertPersonToString(person));
     }
+    // Лаконичнее конечно было бы сделать через стримы (делал подобное в других заданиях), но не знаю насколько это лучше
     return map;
   }
 
   // есть ли совпадающие в двух коллекциях персоны?
   public boolean hasSamePersons(Collection<Person> persons1, Collection<Person> persons2) {
-    boolean has = false;
+    // Переменная для результата не нужна
     for (Person person1 : persons1) {
       for (Person person2 : persons2) {
         if (person1.equals(person2)) {
-          has = true;
+          // Нет смысла продолжать бегать в цикле после первого совпадения
+          return true;
         }
       }
     }
-    return has;
+    // В этом случае точно ничего не нашли
+    return false;
+    // Можно еще через .stream().anyMatch() сделать
   }
 
   // Посчитать число четных чисел
   public long countEven(Stream<Integer> numbers) {
-    count = 0;
-    numbers.filter(num -> num % 2 == 0).forEach(num -> count++);
-    return count;
+    // Кажется нет смысла бегать по стриму, если можно просто взять его размер
+    return numbers.filter(num -> num % 2 == 0).count();
   }
 
   // Загадка - объясните почему assert тут всегда верен
   // Пояснение в чем соль - мы перетасовали числа, обернули в HashSet, а toString() у него вернул их в сортированном порядке
+  // Точно не знаю, но возможно это потому у HashSet под капотом HashMap и у него числа хранятся в порядке возрастания
   void listVsSet() {
     List<Integer> integers = IntStream.rangeClosed(1, 10000).boxed().collect(Collectors.toList());
     List<Integer> snapshot = new ArrayList<>(integers);
