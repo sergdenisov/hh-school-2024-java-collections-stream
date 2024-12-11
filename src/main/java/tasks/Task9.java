@@ -4,10 +4,10 @@ import common.Person;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -25,10 +25,7 @@ public class Task9 {
   // Костыль, эластик всегда выдает в топе "фальшивую персону".
   // Конвертируем начиная со второй
   public List<String> getNames(List<Person> persons) {
-    // В некоторых типах списков .isEmpty() работает быстрее
-    if (persons.isEmpty()) {
-      return Collections.emptyList();
-    }
+    // Проверка на пустоту не нужна
     // Мутировать входящие параметры обычно не рекомендуют во всех языках, кажется .skip() как раз для таких кейсов
     // .toList() создает неизменяемый список, кажется более логичным так вернуть
     return persons.stream().skip(1).map(Person::firstName).toList();
@@ -45,49 +42,34 @@ public class Task9 {
   public String convertPersonToString(Person person) {
     // Во-первых, лишний раз склеивался .secondName()
     // Во-вторых, через стримы наверное это оптимальнее и более лаконично
-    return Stream
-        .of(person.secondName(), person.firstName(), person.middleName())
-        .filter(name -> name != null && !name.isEmpty())
-        .collect(Collectors.joining(" "));
+    return Stream.of(person.secondName(), person.firstName(), person.middleName()).filter(Objects::nonNull).collect(Collectors.joining(" "));
   }
 
   // словарь id персоны -> ее имя
   public Map<Integer, String> getPersonNames(Collection<Person> persons) {
-    // Изначальный размер должен быть равен размеру коллекции
-    Map<Integer, String> map = new HashMap<>(persons.size());
-    for (Person person : persons) {
-      // Кажется нет особо смысла проверять наличие ключа
-      map.put(person.id(), convertPersonToString(person));
-    }
-    // Лаконичнее конечно было бы сделать через стримы (делал подобное в других заданиях), но не знаю насколько это лучше
-    return map;
+    // Лаконичнее через стримы
+    return persons.stream().collect(Collectors.toMap(Person::id, this::convertPersonToString, (a, b) -> a));
   }
 
   // есть ли совпадающие в двух коллекциях персоны?
+  // Через сет и .contains будет работать за O(n)
   public boolean hasSamePersons(Collection<Person> persons1, Collection<Person> persons2) {
-    // Переменная для результата не нужна
-    for (Person person1 : persons1) {
-      for (Person person2 : persons2) {
-        if (person1.equals(person2)) {
-          // Нет смысла продолжать бегать в цикле после первого совпадения
-          return true;
-        }
-      }
-    }
-    // В этом случае точно ничего не нашли
-    return false;
-    // Можно еще через .stream().anyMatch() сделать
+    return persons1.stream().anyMatch(new HashSet<>(persons2)::contains);
   }
 
   // Посчитать число четных чисел
-  public long countEven(Stream<Integer> numbers) {
+  public long countEven(Collection<Integer> numbers) {
+    // Передавать стрим нет смысла, после терминальной операции он закрывается и все, лучше передавать коллекцию
     // Кажется нет смысла бегать по стриму, если можно просто взять его размер
-    return numbers.filter(num -> num % 2 == 0).count();
+    // С count++ не потокобезопасно - свыше могли parallelStream() передать
+    return numbers.stream().filter(num -> num % 2 == 0).count();
   }
 
   // Загадка - объясните почему assert тут всегда верен
   // Пояснение в чем соль - мы перетасовали числа, обернули в HashSet, а toString() у него вернул их в сортированном порядке
-  // Точно не знаю, но возможно это потому у HashSet под капотом HashMap и у него числа хранятся в порядке возрастания
+  // Просто у Integer его хеш равен числу
+  // При таком создании бакетов будет больше чем чисел. Всем хватит. Ну и из-за остатка от деления получится что каждое число в своем бакете
+  // А вот toString() обходит по бакетам
   void listVsSet() {
     List<Integer> integers = IntStream.rangeClosed(1, 10000).boxed().collect(Collectors.toList());
     List<Integer> snapshot = new ArrayList<>(integers);
