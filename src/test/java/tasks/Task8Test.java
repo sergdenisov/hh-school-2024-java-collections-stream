@@ -45,12 +45,12 @@ public class Task8Test {
     ));
 
     assertEquals(
-        personWithResumes,
         Set.of(
             new PersonWithResumes(person1, Set.of(resume1, resume2)),
             new PersonWithResumes(person2, Set.of(resume3, resume4)),
             new PersonWithResumes(person3, Set.of())
-        )
+        ),
+        personWithResumes
     );
 
   }
